@@ -3,38 +3,32 @@ import DataStreamer, { ServerRespond } from './DataStreamer';
 import Graph from './Graph';
 import './App.css';
 
-/**
- * State declaration for <App />
- */
 interface IState {
   data: ServerRespond[],
 }
 
-/**
- * The parent element of the react app.
- * It renders title, button and Graph react element.
- */
 class App extends Component<{}, IState> {
+  private intervalId: NodeJS.Timeout | null = null;
+
   constructor(props: {}) {
     super(props);
 
     this.state = {
-      // data saves the server responds.
-      // We use this state to parse data down to the child element (Graph) as element property
       data: [],
     };
   }
 
-  /**
-   * Render Graph react component with state.data parse as property data
-   */
+  componentWillUnmount() {
+    // Clear the interval when the component unmounts
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
+  }
+
   renderGraph() {
     return (<Graph data={this.state.data}/>)
   }
 
-  /**
-   * Get new data from server and update the state with the new data
-   */
   getDataFromServer() {
     DataStreamer.getData((serverResponds: ServerRespond[]) => {
       // Update the state by creating a new array of data that consists of
@@ -43,9 +37,17 @@ class App extends Component<{}, IState> {
     });
   }
 
-  /**
-   * Render the App react component
-   */
+  startStreaming() {
+    // Clear any existing interval to prevent multiple intervals
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
+    // Set up a new interval to fetch data every 100ms
+    this.intervalId = setInterval(() => {
+      this.getDataFromServer();
+    }, 100);
+  }
+
   render() {
     return (
       <div className="App">
@@ -54,12 +56,7 @@ class App extends Component<{}, IState> {
         </header>
         <div className="App-content">
           <button className="btn btn-primary Stream-button"
-            // when button is click, our react app tries to request
-            // new data from the server.
-            // As part of your task, update the getDataFromServer() function
-            // to keep requesting the data every 100ms until the app is closed
-            // or the server does not return anymore data.
-            onClick={() => {this.getDataFromServer()}}>
+            onClick={() => { this.startStreaming() }}>
             Start Streaming Data
           </button>
           <div className="Graph">
